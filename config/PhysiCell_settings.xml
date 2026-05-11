@@ -23,7 +23,7 @@
     </domain>
 
     <overall>
-        <max_time units="min">64800</max_time>
+        <max_time units="min">10080</max_time>
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
@@ -64,10 +64,10 @@
     </options>
 
     <microenvironment_setup>
-        <variable name="oxygen" units="dimensionless" ID="0">
+        <variable name="oxygen" units="mmHg" ID="0">
             <physical_parameter_set>
-                <diffusion_coefficient units="micron^2/min">100000.0</diffusion_coefficient>
-                <decay_rate units="1/min">0.1</decay_rate>
+                <diffusion_coefficient units="micron^2/min">1000.0</diffusion_coefficient>
+                <decay_rate units="1/min">0.0</decay_rate>
             </physical_parameter_set>
             <initial_condition units="mmHg">38</initial_condition>
             <Dirichlet_boundary_condition units="mmHg" enabled="True">38</Dirichlet_boundary_condition>
@@ -215,6 +215,7 @@
             </phenotype>
             <custom_data>
                 <oncoprotein conserved="false" units="dimensionless" description="">1.0</oncoprotein>
+                <hypoxic_duration conserved="false" units="min" description="">0.0</hypoxic_duration>
             </custom_data>
             <initial_parameter_distributions enabled="false">
           </initial_parameter_distributions>
@@ -235,5 +236,9 @@
         <oncoprotein_sd type="double" units="" description="">0.25</oncoprotein_sd>
         <oncoprotein_min type="double" units="" description="">0.0</oncoprotein_min>
         <oncoprotein_max type="double" units="" description="">2</oncoprotein_max>
+        <o2_vmax type="double" units="1/min" description="Maximum oxygen uptake rate for Michaelis-Menten">10.0</o2_vmax>
+        <o2_km type="double" units="mmHg" description="Michaelis constant for oxygen uptake">5.0</o2_km>
+        <hypoxia_threshold type="double" units="mmHg" description="O2 threshold for hypoxia timer">0.1</hypoxia_threshold>
+        <hypoxia_duration_limit type="double" units="min" description="Time below threshold before necrosis">360</hypoxia_duration_limit>
     </user_parameters>
 </PhysiCell_settings>
