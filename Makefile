@@ -31,16 +31,14 @@ ARCH := native # best auto-tuning
 
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
+LDFLAGS :=
 
 ifeq ($(OS),Windows_NT)
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Darwin)
-		UNAME_P := $(shell uname -p)
-		var := $(shell which $(CC) | xargs file)
-		ifeq ($(lastword $(var)),arm64)
-		  CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11
-		endif
+	  CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include -m64 -std=c++11
+	  LDFLAGS := -L/opt/homebrew/opt/libomp/lib -lomp
 	endif
 endif
 
@@ -68,7 +66,7 @@ ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS)
 # compile the project 
 
 all: main.cpp $(ALL_OBJECTS)
-	$(COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp 
+	$(COMPILE_COMMAND) $(LDFLAGS) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp 
 	make name
 
 name:
