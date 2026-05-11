@@ -18,7 +18,7 @@
 #     as below:                                                               #
 #                                                                             #
 # We implemented and solved the model using PhysiCell (Version x.y.z) [1],    #
-# with BioFVM [2] to solve the transport equations.                           #
+#     with BioFVM [2] to solve the transport equations.                       #
 #                                                                             #
 # [1] A Ghaffarizadeh, R Heiland, SH Friedman, SM Mumenthaler, and P Macklin, #
 #     PhysiCell: an Open Source Physics-Based Cell Simulator for Multicellu-  #
@@ -89,7 +89,7 @@ void create_cell_types( void )
 	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
 
 	cell_defaults.functions.update_migration_bias = NULL; 
-	cell_defaults.functions.update_phenotype = NULL; // update_cell_and_death_parameters_O2_based; 
+	cell_defaults.functions.update_phenotype = NULL; 
 	cell_defaults.functions.custom_cell_rule = NULL; 
 	cell_defaults.functions.contact_function = NULL; 
 	
@@ -269,7 +269,7 @@ void setup_tissue( void )
 					if( p > p_max )
 					{ p = p_max; }
 					set_single_behavior( pCell, "custom:oncoprotein" , p ); 
-
+	
 				}
 			}
 			x += cell_spacing; 
@@ -281,16 +281,16 @@ void setup_tissue( void )
 	}
 	
 	double sum = 0.0; 
-	double min = 9e9; 
-	double max = -9e9; 
+	double min_val = 9e9; 
+	double max_val = -9e9; 
 	for( int i=0; i < all_cells->size() ; i++ )
 	{
 		double r = get_single_signal( (*all_cells)[i] , "custom:oncoprotein" ); 
 		sum += r;
-		if( r < min )
-		{ min = r; } 
-		if( r > max )
-		{ max = r; }
+		if( r < min_val )
+		{ min_val = r; } 
+		if( r > max_val )
+		{ max_val = r; }
 	}
 	double mean = sum / ( all_cells->size() + 1e-15 ); 
 	// compute standard deviation 
@@ -306,7 +306,7 @@ void setup_tissue( void )
 			  << "===================" << std::endl; 
 	std::cout << "mean: " << mean << std::endl; 
 	std::cout << "standard deviation: " << standard_deviation << std::endl; 
-	std::cout << "[min max]: [" << min << " " << max << "]" << std::endl << std::endl; 	
+	std::cout << "[min max]: [" << min_val << " " << max_val << "]" << std::endl << std::endl; 	
 	
 	// load cells from your CSV file (if enabled)
 	load_cells_from_pugixml(); 	
@@ -374,7 +374,9 @@ std::vector<std::string> heterogeneity_coloring_function( Cell* pCell )
 
 void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, double dt )
 {
-	update_cell_and_death_parameters_O2_based(pCell,phenotype,dt);
+	static int oxygen_index = microenvironment.find_density_index( "oxygen" ); 
+	static int necrosis_index = phenotype.death.find_death_model_index( PhysiCell_constants::necrosis_death_model ); 
+	static int live_phase_index = phenotype.cycle.model().find_phase_index( PhysiCell_constants::live ); 
 	
 	// if cell is dead, don't bother with future phenotype changes. 
 	if( get_single_signal( pCell, "dead") > 0.5 )
@@ -382,12 +384,64 @@ void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, d
 		pCell->functions.update_phenotype = NULL; 		
 		return; 
 	}
-
+	
+	// sample local oxygen 
+	double pO2 = pCell->nearest_density_vector()[oxygen_index]; 
+	
+	// -------------------------------------------------------------------------
+	// 1. Michaelis-Menten oxygen consumption
+	//    BioFVM uses: d(rho)/dt += -U * rho for cell-based uptake
+	//    To get MM kinetics: consumption = Vmax * [O2] / (Km + [O2])
+	//    Set uptake_rate = Vmax / (Km + [O2]) so that:
+	//    effective consumption = (Vmax / (Km + [O2])) * [O2] = Vmax * [O2] / (Km + [O2])
+	// -------------------------------------------------------------------------
+	double Vmax = parameters.doubles( "o2_vmax" ); 
+	double Km   = parameters.doubles( "o2_km" ); 
+	phenotype.secretion.uptake_rates[oxygen_index] = Vmax / ( Km + pO2 + 1e-16 ); 
+	
+	// -------------------------------------------------------------------------
+	// 2. Proliferation based on O2 (same logic as standard O2-based update)
+	// -------------------------------------------------------------------------
+	double multiplier = 1.0; 
+	if( pO2 < pCell->parameters.o2_proliferation_saturation )
+	{
+		multiplier = ( pO2 - pCell->parameters.o2_proliferation_threshold ) 
+			/ ( pCell->parameters.o2_proliferation_saturation - pCell->parameters.o2_proliferation_threshold ); 
+	}
+	if( pO2 < pCell->parameters.o2_proliferation_threshold )
+	{ 
+		multiplier = 0.0; 
+	}
+	
+	phenotype.cycle.data.transition_rate(live_phase_index, live_phase_index) = multiplier * 
+		pCell->parameters.pReference_live_phenotype->cycle.data.transition_rate(live_phase_index, live_phase_index);
+	
 	// multiply proliferation rate by the oncoprotein 
-
 	double cycle_rate = get_single_behavior( pCell, "cycle entry"); 
 	cycle_rate *= get_single_signal( pCell , "custom:oncoprotein"); 
 	set_single_behavior( pCell, "cycle entry" , cycle_rate ); 
+	
+	// -------------------------------------------------------------------------
+	// 3. Timer-based necrosis: if [O2] < threshold for > duration, trigger necrosis
+	// -------------------------------------------------------------------------
+	double hypoxia_threshold = parameters.doubles( "hypoxia_threshold" );        // mmHg
+	double hypoxia_duration_limit = parameters.doubles( "hypoxia_duration_limit" ); // min
+	
+	double& hypoxic_duration = pCell->custom_data["hypoxic_duration"]; 
+	
+	if( pO2 < hypoxia_threshold )
+	{
+		hypoxic_duration += dt; 
+		if( hypoxic_duration > hypoxia_duration_limit )
+		{
+			// Trigger necrosis immediately
+			pCell->start_death( necrosis_index ); 
+		}
+	}
+	else
+	{
+		hypoxic_duration = 0.0; // reset timer if oxygen recovers
+	}
 	
 	return; 
 }
