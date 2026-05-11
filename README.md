@@ -1,298 +1,340 @@
-# PhysiCell: an Open Source Physics-Based Cell Simulator for 3-D Multicellular Systems
+# TME Engine — Tumor Microenvironment Simulation Engine
 
-**Versions:** 1.14.0 - 
+A multiscale agent-based model of the tumor microenvironment (TME), built on [PhysiCell](http://physicell.org/). This repository tracks our implementation of a physics-coupled TME simulator with hypoxia-driven necrosis, immune chemotaxis, CAF activation, ECM remodeling, image-to-simulation pipelines, neural network potentials, and LLM agent control.
 
-**Release dates:** 15 September 2024 - 
-* 1.14.0 : 15 September 2024
-* 1.14.1 : 13 December 2024
-* 1.14.2 : 20 January 2025
+> **Status:** Week 1 in progress — hypoxic spheroid with oxygen-driven necrosis is functional.
 
-## Overview: 
-PhysiCell is a flexible open source framework for building agent-based multicellular models in 3-D tissue environments.
+---
 
-**Reference:** A Ghaffarizadeh, R Heiland, SH Friedman, SM Mumenthaler, and P Macklin, PhysiCell: an Open Source Physics-Based Cell Simulator for Multicellular Systems, PLoS Comput. Biol. 14(2): e1005991, 2018. DOI: [10.1371/journal.pcbi.1005991](https://dx.doi.org/10.1371/journal.pcbi.1005991)
+## Table of Contents
 
-Visit http://MathCancer.org/blog for the latest tutorials and help. 
+- [Project Roadmap](#project-roadmap)
+- [Progress Tracker](#progress-tracker)
+- [Quick Start](#quick-start)
+- [Repository Structure](#repository-structure)
+- [Open Source Credits & Citations](#open-source-credits--citations)
+- [License](#license)
 
-**Notable recognition:**
-+ [2019 PLoS Computational Biology Research Prize for Public Impact](https://blogs.plos.org/biologue/2019/05/31/announcing-the-winners-of-the-2019-plos-computational-biology-research-prize/)
+---
 
-### Key makefile rules:
+## Project Roadmap
 
-**`make`**: compiles the current project. If no 
-                     project has been defined, it first 
-                     populates the cancer heterogeneity 2D 
-                     sample project and compiles it 
-   
-**`make project-name`**: populates the indicated sample project. 
-                     Use "make" to compile it. 
+This roadmap follows our 14-week curriculum to build a credible, documented TME simulation prototype.
 
-   * **`project-name`** choices:
-      * template 
-      * biorobots-sample 
-      * cancer-biorobots-sample 
-      * cancer-immune-sample
-      * celltypes3-sample 
-      * heterogeneity-sample 
-      * pred-prey-farmer 
-      * virus-macrophage-sample 
-      * worm-sample
-      * ode-energy-sample 
-      * physiboss-cell-lines-sample 
-      * cancer-metabolism-sample
-      * interaction-sample
-      * mechano-sample
-      * rules-sample
-      * physimess-sample
-      * custom-division-sample
-      * asymmetric-division-sample
-      * immune-function-sample episode-sample
+### Week 1: The Hypoxic Spheroid
+**Goal:** A 3-cell-type virtual spheroid with oxygen-driven necrosis.
 
-**`make list-projects`** : list all available sample projects 
+- [x] **Mon:** Read Hanahan & Weinberg 2022 + Weinberg Ch 13
+- [x] **Tue:** Install PhysiCell. Compile and run heterogeneity sample. Understand `custom_modules/`
+- [x] **Wed:** Add oxygen substrate field. Implement Michaelis-Menten consumption: `uptake_rate = Vmax * [O2] / (Km + [O2])`
+- [x] **Thu:** Add necrosis rule: if `[O2] < 0.1 mmHg` for `>6 hours`, cell enters necrotic state and lyses
+- [ ] **Fri:** Run 7-day simulated time. Vary initial O2 diffusion constant. Observe necrotic core formation
+- [ ] **Weekend:** Plot viable rim thickness vs. O2 diffusion coefficient + 10-second animation
 
-**`make clean`**         : removes all .o files and the executable, so that the next "make" recompiles the entire project 
+**Breakpoint:** Central necrotic core surrounded by viable cells.
 
-**`make data-cleanup`**  : clears out all simulation data 
+### Week 2: Immune Exclusion Dynamics
+**Goal:** T cells chemotax toward cancer, but hypoxia traps them peripherally.
 
-**`make reset`**         : de-populates the sample project and returns to the original PhysiCell state. Use this when switching to a new PhysiCell sample project. 
+- [ ] **Mon:** Read Jain 2014 + Semenza 2012
+- [ ] **Tue:** Add CXCL12 chemoattractant. Cancer secretes it proportional to HIF-1α
+- [ ] **Wed:** Add T cells. Chemotaxis up CXCL12 gradient. Contact-based killing
+- [ ] **Thu:** Run normoxic vs. hypoxic scenarios
+- [ ] **Fri:** Quantify immune infiltration depth
+- [ ] **Weekend:** Side-by-side plots of T cell distributions
 
-**`make save PROJ=name`**: save the current project (including the `Makefile`, `main.cpp`, and everything in `./config` and `./custom_modules/`) in `./user_projects/name`, where `name` is your choice for the project. If the project already exists, overwrite it. 
+**Breakpoint:** Under hypoxia, `>60%` of T cells remain in outer `20%` of spheroid radius.
 
-**`make load PROJ=name`**: load the user project `name` from `./user_projects/name` (including the `Makefile`, `main.cpp`, and everything in `./config` and `./custom_modules/`).  
+### Week 3: ECM, CAFs, and Mechanical Remodeling
+**Goal:** TGF-β-driven CAF activation and collagen deposition.
 
-**`make list-user-projects`**: list all user projects in `./user_projects/`. (Use these names without the trailing `/` in `make load PROJ=name`.)
+- [ ] **Mon:** Read Sahai et al. 2020 + Kalli & Stylianopoulos 2018
+- [ ] **Tue:** Add fibroblasts. Add collagen substrate field
+- [ ] **Wed:** TGF-β secretion by cancer. CAF activation rule
+- [ ] **Thu:** MMP secretion. Haptotaxis up collagen gradient
+- [ ] **Fri:** Run and observe collagen alignment
+- [ ] **Weekend:** ECM density heatmap + phenotype switching time-lapse
 
-**`make jpeg`**          : uses ImageMagick to convert the SVG files in the output directory to JPG (with appropriate sizing to make movies). Supply `OUTPUT=foldername` to select a different folder. 
+**Breakpoint:** CAF activation visibly alters T cell infiltration patterns.
 
-**`make movie`**         : uses ffmpeg to convert the JPG files in the output directory an mp4 movie. Supply `OUTPUT=foldername` to select a different folder, or `FRAMERATE=framerate` to override the frame rate.
+### Week 4: Image-to-Simulation Pipeline
+**Goal:** Turn real microscopy into simulation initial conditions.
 
-**`make upgrade`**       : fetch the latest release of PhysiCell and overwrite the core library and sample projects. 
+- [ ] **Mon:** Install Cellpose 2.0. Run on public tumor spheroid image
+- [ ] **Tue:** Install squidpy + scanpy. Load 10x Visium breast cancer dataset
+- [ ] **Wed:** Segment Visium slide into cancer/CAF/T-cell/macrophage niches
+- [ ] **Thu:** Write converter: Cellpose masks / Visium spots → PhysiCell `cells.csv`
+- [ ] **Fri:** Run PhysiCell initialized from real image topology
+- [ ] **Weekend:** Initial frame visually resembles input microscopy image
 
-### Key Links 
-**Homepage:**     http://PhysiCell.org
+**Breakpoint:** Cell type ratios within `25%` of image ratios.
 
-**Setup Guide:**  https://github.com/physicell-training/ws2023/blob/main/agenda.md#set-up-physicell 
+### Week 5: MD Literacy with Foundation NNPs
+**Goal:** Run stable neural-potential MD, not master it.
 
-**Downloads:**    https://PhysiCell.sf.net AND https://github.com/MathCancer/PhysiCell/releases 
+- [ ] **Mon:** Install mace, ase, openmm. Verify GPU
+- [ ] **Tue:** Download MACE-MP-0. Run 100 ps NVT of water/alanine dipeptide
+- [ ] **Wed:** Check energy conservation. Plot E vs t. Compute O-O RDF
+- [ ] **Thu:** Run same system with TIP3P in OpenMM. Compare RDFs
+- [ ] **Fri:** Read Siretskiy et al. 2025. Know when MACE-MP-0 fails
+- [ ] **Weekend:** `md_literacy.ipynb` with stable trajectory, RDF comparison, cheat sheet
 
-**Support:**      https://join.slack.com/t/physicellcomm-sf93727/shared_invite/zt-qj1av6yd-yVeer8VkQaNDjDz7fF00jA 
+**Breakpoint:** Energy drift `< 2 kcal/mol` over 100 ps. RDF peak at `~2.8 Å`.
 
-**User Guide:**   Look at UserGuide.pdf in the documentation folder. 
- 
-**Setup and Training:**	See this year's workshop and hackathon at https://github.com/PhysiCell-Training/ws2023  
- 
-**Older Tutorials:**    http://www.mathcancer.org/blog/physicell-tutorials/
+### Week 6: Binding Landscapes (Conceptual)
+**Goal:** Understand free energy methods without becoming a PLUMED expert.
 
-**Latest info:**  follow [@PhysiCell](https://twitter.com/PhysiCell) on Twitter (http://twitter.com/PhysiCell)
+- [ ] **Mon:** Read Bussi & Laio 2020 metadynamics review
+- [ ] **Tue:** Download pre-computed metadynamics trajectory
+- [ ] **Wed:** Practice reweighting: extract unbiased FES
+- [ ] **Thu:** Run umbrella sampling on alanine dipeptide phi angle in OpenMM
+- [ ] **Fri:** Conceptual exercise: barrier `5 kcal/mol` at `310 K` → estimate timescale via TST
+- [ ] **Weekend:** PMF plot + notebook page deriving rate from barrier
 
-See changes.md for the full change log. 
+**Breakpoint:** Explain why metadynamics explores faster than unbiased MD, and why TST rates are approximate.
 
-* * * 
+### Week 7: The Signaling ODE (Mesoscale Part 1)
+**Goal:** A standalone, validated TGF-β/SMAD module.
 
-## Release summary: 
-Version 1.14 upgrades the Cell Beheavior Hypothesis Grammar (to version 3), including refinements to cell phagocytosis, effector attack, and cell damage/integrity in response to community discussions and peer review. It also introduces numerous refinements to cell division, random seeds, and randomized parameter initialization, as well as upgrades to PhysiBoSS and PhysiMeSS and bug fixes. Other refinements are "under the hood," including new GitHub actions and improved automation of testing, as well as improvements to MultiCellDS output. 
+- [ ] **Mon:** Read Alberts Ch 15. Find published TGF-β/SMAD ODE model
+- [ ] **Tue:** Implement ODE system in SciPy (`solve_ivp`)
+- [ ] **Wed:** Calibrate to literature dose-response
+- [ ] **Thu:** Add Hill-function wrapper: CAF activation probability from nuclear SMAD
+- [ ] **Fri:** Sensitivity analysis: vary each parameter `10×`
+- [ ] **Weekend:** `signaling_module.py` with dose-response, EC50 annotated, tornado diagram
 
-### Version 1.14.2 (20 Jan 2025): 
-Version 1.14.2 primarily introduces bugfixes and stability refinements, closer matching to the cell behavior grammar (including the new `transition to X` synonym for `transform to X` behavior and better support for asymmetric division), a new script to more easily download PhysiCell Studio, and improvements to allow parallel "episodes" of PhysiCell in machine learning environments, such as the upcoming PhysiGym addon. 
+**Breakpoint:** EC50 within `0.1–10 ng/mL`.
 
-We are grateful for contributions by Vincent Noël, Randy Heiland, Daniel Bergman, Heber Rocha, and Elmar Bucher in this release. 
+### Week 8: Receptor Kinetics at the Surface (Mesoscale Part 2)
+**Goal:** Ligand-receptor binding as a stochastic cellular event.
 
-### Version 1.14.1 (13 Dec 2024): 
-Version 1.14.1 primarily introduces bug fixes as noted below, but also introduces the first implementation of asymmetric division. 
+- [ ] **Mon:** Derive receptor occupancy from mass action. Implement as continuous ODE
+- [ ] **Tue:** Implement kinetic Monte Carlo (kMC) version
+- [ ] **Wed:** Couple kMC to Week 7 ODE
+- [ ] **Thu:** Test with varying `kon (10×, 0.1×)`
+- [ ] **Fri:** Add ligand depletion. Solve reaction-diffusion for extracellular TGF-β
+- [ ] **Weekend:** 1D/2D spatial model showing TGF-β gradient → receptor occupancy → activation
 
-Among the notable changes includes a more consistent handling of internalized substrates and conserved custom data on transformation and phagocytosis: they are now conserved in these processes. Several other features and changes are included (see below) as well as additional bug fixes (major and minor). Finally, the test suite will no test on MacOS 13 instead of the now-deprecated-in-GitHub-Actions MacOS 12.
+**Breakpoint:** `10×` change in `kon` produces `>2×` change in activation threshold.
 
-Please report any bugs or issues in Issues or in the PhysiCell community Slack workspace. Also, feel free to suggest new features in either location as well.
+### Week 9: Full Coupling to PhysiCell (Mesoscale Part 3)
+**Goal:** The MD-derived rate flows into tissue-scale ECM remodeling.
 
-We are grateful for contributions by Vincent Noël, Randy Heiland, Daniel Bergman, Heber Rocha, and Elmar Bucher in this release. 
+- [ ] **Mon:** Unit conversion workshop. Write `units.py`
+- [ ] **Tue:** Integrate Week 8 kMC-ODE into PhysiCell custom code
+- [ ] **Wed:** Debug the full loop: cancer → TGF-β → fibroblast → SMAD → myofibroblast → collagen → T cell exclusion
+- [ ] **Thu:** Run coupled system. Run Week 3 rule-based version with matched parameters
+- [ ] **Fri:** Quantitative comparison: time to 50% CAF activation, collagen density at 48h, T cell depth
+- [ ] **Weekend:** Side-by-side report: "Rule-based vs. Physics-coupled"
 
-### Version 1.14.0 (15 Sep 2024):
-Version 1.14.0 Introduces Cell Behavior Hypothesis Grammar (CBHG) 3.0, enhancing the modeling of cellular behaviors with the addition of a new `Cell_Integrity` class and refined phagocytosis behaviors (now split into separate rates for apoptotic, necrotic, and other dead cells). The built-in "attack" model has been refined to include formation of a persistent synapse (with a spring adhesion) throughout the attack (which is tunable via the `attack_duration` parameter), and a clarified `attack_damage_rate` to denote the rate at which an attacker damages its target cell. The attacking cell also tracks how long it has attacked (may be useful for exhaustion modeling), whether it is or is not attacking, and the identity (cell pointer) of the cell it is attacking. 
+**Breakpoint:** Physics-coupled version shows time-delayed response that rule-based cannot capture.
 
-The new `Cell_Integrity` class (within `Phenotype`) allows more control over cell damage. Attacking cells (see above) can increase damage, as well as a new generalized `damage_rate` that can (for example) be used to model damage from other sources such as cytotoxic drugs or toxins. A built-in model for damage repair (with default rate `damage_repair_rate` = 0) can be used for simple modeling of damage repair (e.g., DNA damage response during a cycle damage checkpoint). 
+### Week 10: Spatial Omics & Calibration
+**Goal:** Match simulation to real data via Approximate Bayesian Computation.
 
-This release also includes an option to set the random number generator seed value, new capabilities to draw initial parameters from a random distribution, and support for user-defined custom functions the evaluated during cell division (which allow users to individually set properties of daughter cells, such as during asymmetric division). Beyond bug fixes, the release includes a systematic testing package, utilizing scripts and GitHub Actions for automated testing.
+- [ ] **Mon:** Load public tumor spatial transcriptomics dataset. Compute Ripley's L
+- [ ] **Tue:** Generate synthetic spatial omics from PhysiCell
+- [ ] **Wed:** Define distance metric between real and simulated patterns
+- [ ] **Thu:** Implement ABC with pyABC or custom rejection sampler
+- [ ] **Fri:** Plot posterior. Run MAP estimate vs. prior
+- [ ] **Weekend:** Posterior distribution + calibrated growth curve within `20%` of target
 
-We are grateful for contributions by Vincent Noël, Randy Heiland, Daniel Bergman, Heber Rocha, and Elmar Bucher in this release. 
+**Breakpoint:** Posterior tighter than prior (information was gained).
 
-**NOTE 1:** MacOS users need to define a PHYSICELL_CPP environment variable to specify their OpenMP-enabled g++. See the [Setup Guides](https://github.com/physicell-training/ws2023/blob/main/agenda.md#set-up-physicell) for details.
+### Week 11: Uncertainty & Negative Results
+**Goal:** Know exactly how and why your model lies.
 
-**NOTE 2:** Windows users need to follow an updated (from v1.8) MinGW64 installation procedure. This will install an updated version of g++, plus libraries that are needed for some of the intracellular models. See the [Setup Guides](https://github.com/physicell-training/ws2023/blob/main/agenda.md#set-up-physicell) for details.
+- [ ] **Mon:** Deep ensembles: run 5 simulations from posterior. Plot mean ± std of invasion depth
+- [ ] **Tue:** Adversarial test 1: drug binds TGF-β receptor tightly but `koff` extremely high
+- [ ] **Wed:** Adversarial test 2: mis-segment input image (swap cancer/CAF labels)
+- [ ] **Thu:** Adversarial test 3: LLM proposes biologically impossible rule. Verify parameter schema rejects it
+- [ ] **Fri:** Write 2-page "Failure Mode & Uncertainty" report
+- [ ] **Weekend:** Report + ensemble prediction plots with explicit error bands
 
-### Major new features and changes in the 1.14.z versions
-#### 1.14.2
-+ In anticipation with the upcoming `PhysiGym` addon (for machine learning / reinforcement learning), it is now possible to run multiple consecutive episodes from a single PhysiCell model within a runtime. The episode sample project demonstrates this possibility.
+**Breakpoint:** Articulate why each failure occurs in terms of model structure.
 
-#### 1.14.1 
-+ asymmetric division is now possible through the config file
-  + try the sample project with make `asymmetric-division-sample`
-  + on division, one (and only one) of the daughter cells can be assigned a new cell type
-  + set probabilities for each cell type in the config file
-  + control these probabilities with rules using the behavior `asymmetric division to [cell_type]`
-+ create full path to output folder if it does not exist
-+ write `random_seed` to `output/random_seed.txt` for reproducibility even when using `system_clock` for setting the seed
-+ copy the rules file(s) to the output folder and write the parsed rules (v3) `to cell_rules_parsed.csv` in the output folder
-+ preserve internalized substrates and conserved custom data on cell transformation
-+ default to 100% (instead of 0%) of internalized substrates being transferred on phagocytosis
-+ transfer `conserved` custom data on phagocytosis from eaten to eater cell
+### Week 12: Active Learning / Bayesian Experimental Design
+**Goal:** The simulator proposes its own calibration experiments.
 
-#### 1.14.0 
-+ Introduced changes to Rules:
-  + `damage rate` (a part of `Cell_Integrity`) is now a generalized term for a rate of damage caused by non-attack means 
-  + `attack damage rate` means what `damage rate` used to mean: how fast an attacking cell deals damage to a target cell throughout the duration of the atttack
-  + `phagocytose dead cell` is replaced by death-model-specific rates:
-    + `phagocytose apoptotic cell`
-    + `phagocytose necrotic cell`
-    + `phagocytose other dead cell`
-+ New `Cell_Integrity` class in PhysiCell_phenotype.h. `damage` was moved from Cell_State into Cell_Integrity 
-  + the cancer-biorobots-sample `custom.cpp` was updated to reflect this change.
-+ `contact with dead cell` has been supplemented with additional (refined) signals `contact with apoptotic cell`, `contact with necrotic cell`, and `contact with other dead cell`
-+ Seed for random numbers: in the top most <options> tag of a config file (for options that apply to the overall simulation), there is now a <random_seed>. Traditionally, this has been provided in <user_parameters> and if it is still present there, it will override the one in <options>. Users are encouraged to migrate away from its use in <user_parameters> as this will likely be removed from sample projects in a future release.
-  + Setting as an integer will have the same behavior as the `user_parameter`
-      + <random_seed>0</random_seed>
-  + Setting as “”, “random”, or “system_clock” will use the system clock to set the random seed
-      + <random_seed />
-      + <random_seed></random_seed>
-      + <random_seed>random</random_seed>
-      + <random_seed>system_clock</random_seed>
-+ New option for a user-defined custom function for cell division. If provided, the custom function will receive pointers to the two daughter cells. A new sample project, `custom-division-sample`, is provided.
-+ Initial parameter distributions
-  + Users can now start cells with heterogeneity in any behavior or also the total volume
-  + For ease of access, in studio navigate to Cell Types > Misc > Parameter Distributions
-  + Five distributions supported:
-    + Uniform
-      + Set min and max; behavior ~ U(min, max)
-    + Log uniform
-      + Set min and max; z ~ U(log(min), log(max)); behavior ~ exp(z)
-      + Note: min and max are on the behavior scale, not the logarithmic scale
-    + Normal
-      + Set μ and σ; behavior ~ N(μ, σ)
-      + Optionally set lb, ub to impose lb <= behavior <= ub
-    + Log normal
-      + Set μ and σ; z ~ N(μ, σ); behavior ~ exp(z)
-      + Optionally set lb, ub to impose lb <= behavior <= ub
-      + Note: μ and σ are on the logarithmic scale
-      + Note: lb and ub are on the behavior scale
-    + Log10 normal
-      + Same as log normal, except behavior ~ 10^z
-      + Implemented because log10 values are more human-interpretable
-  + Can enforce that the base value is within the distribution to help constrain parameter sweeps
-  + “Enable” attributes make it easy to toggle on/off individual distributions or for an entire cell type
-+ MultiCellDS update:
-  + PhysiBoSS intracellular data is now part of data export
-  + Spring attachments are now part of data export
-  + Streamlined MultiCellDS with incorporation of more single-cell parameters/state variables
-+ Update to PhysiBoSS 2.2.3
-  + Added steepness parameter to output mapping, controlling the Hill coefficient used.
-  + Added use_for_dead parameter to input and output mapping, to define if this mapping should be used on dead cells.
-  + Added three new sample projects: 
-    + template_BM: adaptation of the template project of PhysiCell, with PhysiBoSS support
-    + physiboss-tutorial: three toy models presented in the PhysiBoSS tutorial ([10.48550/arXiv.2406.18371](https://doi.org/10.48550/arXiv.2406.18371)).
-    + physiboss-tutorial-invasion: update of the cancer invasion model by Ruscone et al., also presented in the PhysiBoSS tutorial.
-+ Update to PhysiMeSS 1.0.1
-  + Most parameters are now defined in custom_data, to make them specific to a cell definition. This introduces the possibility to have multiple types of fibers.
-+ Introducing experimental pre-compiled binaries, available via python beta/download_binary.py.
-+ Non-monotonic rules: a single signal can now both cause an increase *and* a decrease in a behavior for a cell type (bringing the implementation in better compliance with the specification at https://www.biorxiv.org/content/10.1101/2023.09.17.557982) 
-+ Initialize substrate initial conditions using a .mat or .csv file
-  + implemented in PhysiCell Studio; see output there for formatting of the csv
-+ Substrate heatmaps on SVGs improvements:
-  + set colormaps in the config file
-  + set the svg substrate color function by default for config-only based implementation
+- [ ] **Mon:** Read Rainforth et al. 2024. Install BoTorch or scikit-optimize
+- [ ] **Tue:** Build GP surrogate mapping 2–3 ABM parameters → observables
+- [ ] **Wed:** Implement Expected Improvement (EI) acquisition function
+- [ ] **Thu:** "Hidden ground truth": high-fidelity ABM with known parameters. Use BO to propose 5 conditions
+- [ ] **Fri:** Update GP after each experiment. Plot convergence
+- [ ] **Weekend:** BO convergence plot showing parameter uncertainty vs. iteration
 
-### Minor new features and changes: 
-#### 1.14.2
-- [PR349](https://github.com/MathCancer/PhysiCell/pull/349) (minor improvement): `load_PhysiCell_config_file()` was split into `load_PhysiCell_config_file()` and `read_PhysiCell_config_file()` functions
-- [PR349](https://github.com/MathCancer/PhysiCell/pull/349) (minor improvement): `BioFVM BioFVM_microenvironment::initialize_microenvironment()` was split into `initialize_microenvironment()` and `set_microenvironment_initial_condition()` functions.
-- [PR349](https://github.com/MathCancer/PhysiCell/pull/349) (minor improvement): In `BioFVM/BioFVM_MultiCellDS.*`, a new `reset_BioFVM_substrates_initialized_in_dom()` function was added.
-- [PR349](https://github.com/MathCancer/PhysiCell/pull/349) (minor improvement): A new `BioFVM::BioFVM_basic_agent::reset_max_basic_agent_ID()` function was added. 
-- Switched `setup_cell_rules( void )` to output the full list of signals and behaviors with synonyms in `./output/dictionaries.txt` for fuller reference. 
-- Added new functions:
-  - `void display_signal_dictionary_with_synonyms( std::ostream& os )`
-  - `void display_response_dictionary_with_synonyms( std::ostream& os )`
-- Added `transition to X` and `transition to cell type N` as synonyms for the behavior `transform to X` (with synonym `transform to cell type X`), at the request of the cancer community who regard `transformation` as synonymous with `cancerous transformation`. (And `transition to X` is now the "primary" name for the behavior.) 
-- [PR352](https://github.com/MathCancer/PhysiCell/pull/352) (minor improvement): more robust macro to check for windows machines when creating directories
-- [PR353](https://github.com/MathCancer/PhysiCell/pull/353) (minor feature): Python script to download latest release of Studio (and create /studio).
+**Breakpoint:** Uncertainty drops `>50%` within 8 iterations.
 
-  To use it, go to the root directory and run:
+### Week 13: LLM Agent Interface
+**Goal:** Natural language control of the TME simulator.
 
-  ```
-  python beta/get_physicell.py
-  ```
+- [ ] **Mon:** Read Yao et al. 2022 (ReAct). Design tool schema
+- [ ] **Tue:** Implement tools in Python: `run_tme_sim()`, `load_image()`, `get_spatial_stats()`, `plot_field()`
+- [ ] **Wed:** Build agent using LangChain or raw OpenAI function-calling
+- [ ] **Thu:** Add reflection layer: unphysical parameters raise `ValueError`, agent retries
+- [ ] **Fri:** Build minimal UI (Gradio or Streamlit)
+- [ ] **Weekend:** Working chat interface handling 3 distinct query types
 
-  and then to run studio (with the template project):
+**Breakpoint:** Agent refuses at least one biologically impossible query gracefully.
 
-  ```
-    make reset && make template && make
-    python studio/bin/studio.py & 
-  ```
-  
-#### 1.14.1
-- PhysiBoSS PDFs removed from repo, links provided in tutorial README.md
-- build binaries on release `published` instead of `created`
-- `beta/download_binary.py` gets PhysiCell Version 1.14.1
-- add reference to PhysiMeSS article
-- `make immune-function-sample` to make sample project showing new (1.14.0) phagocytosis and attack modules
-- add `rules_sample` to tests
-- test and build on macos-13 instead of macos-12 as that is being deprecated by GitHub actions
+### Week 14: Capstone & Roadmap
+**Goal:** A credible, documented prototype.
 
-#### 1.14.0 
-+ Scripts in `/beta` to help with testing, both manually and via GitHub Actions: `test_build_samples.sh` and `test*.py`
-+ The Makefiles for all sample projects now do a recursive copy (`cp -r`) for files in the /config directory
-+ throw error if duplicate substrate or user_parameter name found
- 
-### Bugfixes: 
-#### 1.14.2 
-+ [PR350](https://github.com/MathCancer/PhysiCell/pull/350) (minor fix): use standard save event triggers in asymmetric division example
-+ [PR351](https://github.com/MathCancer/PhysiCell/pull/351) (minor fix): re-round template project cycle durations
+- [ ] **Mon:** Define capstone case: HER2+ breast cancer spheroid with CAFs and PBMCs, with/without trastuzumab + anti-PD-1
+- [ ] **Tue:** Run full pipeline: image → segmentation → PhysiCell IC → MACE-derived drug effect → ABM → time-lapse → LLM summary
+- [ ] **Wed:** Stress test: swap therapeutic agent. Does pipeline run without code changes?
+- [ ] **Thu:** Write README with install instructions, dependency versions, 5-minute demo GIF
+- [ ] **Fri:** Write 2-page technical roadmap: "Days 101–365"
+- [ ] **Weekend:** Public GitHub repository. Colleague can clone, install, and run `python demo.py` in `<30 min`
 
-#### 1.14.1
-- store value of `attack_duration` when parsing config file
-- set rules to Version 3.0 for all projects
-- store the `conserved` boolean when parsing `custom_data` in the config
-- when a cell dies, make sure it is removed from `neighbors` lists for all neighboring cells
-- use `std::stoul` in place of `std::stoi` to properly read in large ints for random seeds
-- use `std::ostringstream` to write voxel coordinates to avoid overflowing the buffer
-- fix `custom_division` `sample_project` so it does not require `random_seed` as a `user_parameter`
-- actually record `applies_to_dead` boolean for exported rules
-- initialize `total_attack_time = 0.0;` to avoid random initial values
-- update all sample projects to 1.14.x
-  - update phagocytosis parameters
-  - update attack parameters
-- remove extraneous call to `SeedRandom()` in PhysiBoSS cell lines project
-- do not let random detachment occur when one cell is attacking another
+**Final Breakpoint:** The repo runs on a fresh environment without your intervention.
 
-#### 1.14.0 
-+ `sample_projects_intracellular/ode/ode_energy/main.cpp` was updated to use `save_PhysiCell_to_MultiCellDS_v2`
-+ `Cell::convert_to_cell_definition` now retains the cell volume
-+ fix bug in storing rules that occasionally resulted in seg faults
+---
 
-### Notices for intended changes that may affect backwards compatibility:
-+ Future releases may further refine `Cell_Integrity` with more specific forms of damage (and accompanying damage and repair rates).
+## Progress Tracker
 
-+ We intend to deprecate the unused phenotype variables `relative_maximum_attachment_distance`, `relative_detachment_distance`, and `maximum_attachment_rate` from `phenotype.mechanics.` 
+| Week | Theme | Status | Key Deliverable |
+|------|-------|--------|-----------------|
+| 1 | Hypoxic Spheroid | 🟡 In progress | Necrotic core + viable rim |
+| 2 | Immune Exclusion | ⚪ Not started | T cell spatial distributions |
+| 3 | ECM & CAFs | ⚪ Not started | ECM density heatmap |
+| 4 | Image-to-Sim | ⚪ Not started | PhysiCell IC from microscopy |
+| 5 | MD Literacy | ⚪ Not started | `md_literacy.ipynb` |
+| 6 | Binding Landscapes | ⚪ Not started | PMF + rate derivation |
+| 7 | TGF-β/SMAD ODE | ⚪ Not started | `signaling_module.py` |
+| 8 | Receptor Kinetics | ⚪ Not started | 1D spatial model |
+| 9 | Full Coupling | ⚪ Not started | Rule-based vs. physics-coupled report |
+| 10 | Spatial Omics & ABC | ⚪ Not started | Posterior distribution plot |
+| 11 | Uncertainty | ⚪ Not started | Failure mode report |
+| 12 | Active Learning | ⚪ Not started | BO convergence plot |
+| 13 | LLM Agent | ⚪ Not started | Working chat UI |
+| 14 | Capstone | ⚪ Not started | Public repo + demo |
 
-+ We intend to merge `Custom_Variable` and `Custom_Vector_Variable` in the future.  
+**Legend:** 🟢 Done | 🟡 In progress | ⚪ Not started
 
-+ We may change the role of `operator()` and `operator[]` in `Custom_Variable` to more closely mirror the functionality in `Parameters<T>`. 
+---
 
-+ Additional search functions (e.g., to find a substrate or a custom variable) will start to return -1 if no matches are found, rather than 0. 
- 
-+ We will change the timing of when `entry_function`s are executed within cycle models. Right now, they are evaluated immediately after the exit from the preceding phase (and prior to any cell division events), which means that only the parent cell executes it, rather than both daughter cells. Instead, we'll add an internal Boolean for "just exited a phase", and use this to execute the entry function at the next cycle call. This should make daughter cells independently execute the entry function. 
+## Quick Start
 
-+ We might make `trigger_death` clear out all the cell's functions, or at least add an option to do this. 
+### Prerequisites
 
-+ We might change the behavior of copied Custom Data when a cell changes type (changes to a new cell definition). Currently, all custom data elements in a cell are overwritten based on those in the new cell definition. This is not the best behavior for custom data elements that represent state variables instead of type-dependent parameters. 
+- macOS with Apple Silicon (or Linux/x86_64 with adjustments)
+- Xcode Command Line Tools
+- Homebrew
+- Python 3.10+
 
-### Planned future improvements: 
+### Install & Run
 
-+ Further XML-based simulation setup. 
+```bash
+# Clone
+git clone https://github.com/muuki2/tempest.git
+cd tempest
 
-+ Read saved simulation states (as MultiCellDS digital snapshots)
-  
-+ Create an angiogenesis sample project 
- 
-+ Create a small library of angiogenesis and vascularization codes as an optional standard module in ./modules (but not as a core component)
+# Build PhysiCell
+make clean && make
 
-+ Further update sample projects to make use of more efficient interaction testing available
+# Run simulation
+make data-cleanup
+./heterogeneity
 
-+ Major refresh of documentation.
+# Analyze results
+./run_analysis.sh
+
+# View outputs
+open output/cell_counts.png
+open output/rim_thickness.png
+open output/spheroid.mp4
+```
+
+### Python Environment
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Optional: Movie Generation
+
+```bash
+brew install librsvg ffmpeg
+```
+
+---
+
+## Repository Structure
+
+```
+.
+├── BioFVM/                  # BioFVM transport solver (PhysiCell dependency)
+├── core/                    # PhysiCell core library
+├── modules/                 # PhysiCell standard modules
+├── custom_modules/          # ★ Our custom cell behavior code
+│   ├── custom.cpp           # MM uptake + necrosis + oncoprotein logic
+│   └── custom.h             # Custom module headers
+├── config/                  # ★ Simulation configuration
+│   └── PhysiCell_settings.xml
+├── sample_projects/         # PhysiCell sample projects (reference)
+├── analysis.py              # ★ Python post-processing
+├── run_analysis.sh          # ★ Convenience runner (auto-activates .venv)
+├── requirements.txt         # ★ Pinned Python dependencies
+├── README_WEEK1.md          # ★ Week 1 detailed notes
+└── README.md                # ★ This file
+```
+
+Files marked with ★ are our original work or significant modifications.
+
+---
+
+## Open Source Credits & Citations
+
+This project is built on outstanding open-source software and published research. We gratefully acknowledge:
+
+### Core Simulation Framework
+
+**PhysiCell** — Agent-based cell simulator
+> A Ghaffarizadeh, R Heiland, SH Friedman, SM Mumenthaler, and P Macklin, *PhysiCell: an Open Source Physics-Based Cell Simulator for Multicellular Systems*, PLoS Comput. Biol. 14(2): e1005991, 2018. DOI: [10.1371/journal.pcbi.1005991](https://doi.org/10.1371/journal.pcbi.1005991)
+
+**BioFVM** — Diffusive transport solver (bundled with PhysiCell)
+> A Ghaffarizadeh, SH Friedman, and P Macklin, *BioFVM: an efficient parallelized diffusive transport solver for 3-D biological simulations*, Bioinformatics 32(8): 1256-8, 2016. DOI: [10.1093/bioinformatics/btv730](https://doi.org/10.1093/bioinformatics/btv730)
+
+### Python Ecosystem
+
+- **NumPy** — Harris et al., *Array programming with NumPy*, Nature 585, 357–362 (2020)
+- **Matplotlib** — Hunter, *Matplotlib: A 2D Graphics Environment*, Computing in Science & Engineering 9(3): 90-95 (2007)
+- **CairoSVG** — Kozea, SVG rendering via Cairo
+
+### System Tools
+
+- **libomp** (Homebrew) — OpenMP runtime for Apple Clang
+- **librsvg** — SVG rendering library (used for movie generation)
+- **ffmpeg** — Video encoding
+
+### Key Reading
+
+The curriculum is built around these foundational papers (see roadmap for week-by-week assignments):
+
+1. Hanahan & Weinberg, *Hallmarks of Cancer: New Dimensions*, Cancer Discovery 2022
+2. Jain, *Normalizing Tumor Microenvironment to Treat Cancer*, JCO 2014
+3. Binnewies et al., *Understanding the Tumor Immune Microenvironment*, Nature Medicine 2018
+4. Sahai et al., *A Framework for Advancing Our Understanding of Cancer-Associated Fibroblasts*, Nature Reviews Cancer 2020
+5. Kalli & Stylianopoulos, *Defining the Role of Solid Stress and Matrix Stiffness*, Annual Review of Biomedical Engineering 2018
+6. Ghaffarizadeh et al., *PhysiCell*, PLoS Computational Biology 2018
+7. Batatia et al., *MACE: Higher Order Equivariant Message Passing*, ICML 2022
+8. Siretskiy et al., *Machine-Learning Interatomic Potentials from a User's Perspective*, JCIM 2025
+9. Rainforth et al., *An Introduction to Bayesian Experimental Design*, FnT Machine Learning 2024
+10. Yao et al., *ReAct: Synergizing Reasoning and Acting in Language Models*, ICLR 2023
+
+See `README_WEEK1.md` and the full 14-week roadmap above for the complete reading list.
+
+---
+
+## License
+
+Our original code (`custom_modules/custom.cpp`, `analysis.py`, `run_analysis.sh`, `README_WEEK1.md`, and modifications to `config/PhysiCell_settings.xml` and `Makefile`) is provided under the same BSD 3-Clause license as PhysiCell itself, to maintain compatibility.
+
+PhysiCell and BioFVM are copyright (c) 2015-2025, Paul Macklin and the PhysiCell Project, and licensed under the BSD 3-Clause License. See `licenses/` for full text.
+
+---
+
+> *"The goal is not a clinically validated digital twin. The goal is a credible, documented prototype that teaches you how multiscale modeling actually works."*
